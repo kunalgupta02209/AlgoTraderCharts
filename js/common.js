@@ -38,13 +38,24 @@
         var table = anychart.data.table(0);
         table.addData(data);
 
+        // get timezone offset for the current timezone - 
+        // WD_Table_Data_05:19 Tue Jan 12 2021 00:49:56 GMT+0530 (India Standard Time)
+        // val = -330
+        var timeZoneOffset = new Date().getTimezoneOffset();
+
+        // set timezone offset for correct chart timezone
+        anychart.format.outputTimezone(timeZoneOffset);
+
         // create data mappings
-        var mapping = table.mapAs({'value': 4});
+        var mapping = table.mapAs({'open':1,'high':2,'low':3,'close':4,'value': 4});
 
         // create line series
-        chart.plot(0).line(mapping)
+        chart.plot(0).candlestick(mapping)
             .stroke('2 #253992')
             .name('MSFT');
+        //set zoom on mouse wheel
+        chart.interactivity().zoomOnMouseWheel(true);
+
 
         // create ema indicator
         chart.plot(0).ema(mapping, 50, 'spline')
