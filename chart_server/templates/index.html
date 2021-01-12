@@ -43,7 +43,7 @@
   <link rel="stylesheet" href="https://cdn.anychart.com/fonts/latest/css/anychart-font.min.css">
 
   <!--style-->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="static/css/style.css">
 
   <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
   <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -54,6 +54,44 @@
 </head>
 
 <body>
+  <div class='container'>
+    <form>
+      <div class="row">
+        <div class="col">
+          <input type="search" name="source" id="autocomplete-1" class="form-control form-control-lg autocomplete" placeholder="Enter Source">
+        </div>
+        <div class="col">
+          <input type="password" class="form-control" placeholder="Enter password" name="pswd">
+        </div>
+        <button type="submit" class="btn btn-primary mb-2">Submit</button>
+      </div>
+    </form>
+  </div>
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script src="static/js/intervals.js"></script>
+  <script>
+    var symbols = (function () {
+      var json = null;
+      $.ajax({
+          'async': false,
+          'global': false,
+          'url': '/autocomplete',
+          'dataType': "json",
+          'success': function (data) {
+              json = data;
+          }
+      });
+      return json;
+    })(); 
+    var intervals = get_intervals_list();
+    console.log(intervals);
+  </script>
+  <script>
+    $( "#autocomplete-1" ).autocomplete({
+      source: symbols});
+  </script>
   <div id="loader-wrapper" class="anychart-loader">
     <div class="rotating-cover">
       <div class="rotating-plane">
@@ -409,7 +447,7 @@
   <script src="https://cdn.anychart.com/csv-data/msft-daily-short.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.10.0/js/bootstrap-select.min.js"></script>
 
-  <script src="js/common.js"></script>
+  <script src="static/js/common.js"></script>
 
   <!-- This library enables the automatic resizing of the height and width of
 both same and cross domain iFrames to fit their contained content.   -->

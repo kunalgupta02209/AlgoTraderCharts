@@ -46,6 +46,8 @@
         // set timezone offset for correct chart timezone
         anychart.format.outputTimezone(timeZoneOffset);
 
+        var indicator = chart.plot(0).priceIndicator({value: "last-visible"});
+
         // create data mappings
         var mapping = table.mapAs({'open':1,'high':2,'low':3,'close':4,'value': 4});
 
