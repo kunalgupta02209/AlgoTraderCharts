@@ -49,7 +49,12 @@ def get_ohlc(symbol, interval = OHLCInterval.Minute_1,
 		to_d = TIMEZONE.localize(to_d)
 	final_df = None
 	if OHLCInterval.Day_1 != interval and OHLCInterval.Minute_1 != interval and OHLCInterval.Minute_60 != interval:
-		df = _get_ohlc(symbol, OHLCInterval.Minute_1, from_d, to_d)
+		if OHLCInterval.Month_1 == interval or OHLCInterval.Week_1:
+			df = _get_ohlc(symbol, OHLCInterval.Day_1, from_d, to_d)
+		elif OHLCInterval.Hour_2 == interval or OHLCInterval.Hour_3 == interval or OHLCInterval.Hour_4:
+			df = _get_ohlc(symbol, OHLCInterval.Minute_60, from_d, to_d)
+		else:
+			df = _get_ohlc(symbol, OHLCInterval.Minute_1, from_d, to_d)
 		if len(df) == 0:
 			return df
 		df_ = pd.DataFrame()
@@ -78,3 +83,35 @@ def get_ohlc(symbol, interval = OHLCInterval.Minute_1,
 	if to_csv == True:
 		final_df.to_csv(symbol+"_"+interval+"_"+str(to_d.strftime("%Y-%m-%d")+".csv"))
 	return final_df
+
+def get_ticks(symbol,from_d = dt.now() - timedelta(days=5),
+		to_d = dt.now(), backtest = False, ret_dict = False):
+	if from_d.tzinfo is None:
+		from_d = TIMEZONE.localize(from_d)
+		to_d = TIMEZONE.localize(to_d)
+	collection = CLIENT[DB_NAMES['tick']][symbol].with_options(codec_options=CodecOptions(tz_aware=True, tzinfo=TIMEZONE),read_concern=pymongo.read_concern.ReadConcern('local'))	
+	if backtest or ret_dict:
+		result = collection.find({'_id.timestamp':{
+					'$gte':from_d,
+					'$lte':to_d
+					}},{"_id":1,"last_price":1,"instrument_token":1}).sort("_id",direction=pymongo.ASCENDING)
+		if ret_dict:
+			return list(result)
+		df = pd.DataFrame(columns=['timestamp',symbol])
+		df[symbol] = list(result)
+		if len(df) == 0:
+			return df
+		df['timestamp'] = df[symbol].apply(lambda x: x['_id']['timestamp'].replace(tzinfo=None))
+		df.set_index('timestamp', inplace=True)
+		return df
+	result = collection.find({'_id.timestamp':{
+					'$gte':from_d,
+					'$lte':to_d
+					}},{"_id":1,"last_price":1,"volume":1,"oi":1}).sort("_id",direction=pymongo.ASCENDING)
+	df = pd.DataFrame(data=list(result))
+	if len(df) == 0:
+		return df
+	df['timestamp'] = df['_id'].apply(lambda x: x['timestamp'].replace(tzinfo=None))
+	df.set_index('timestamp', drop=True, inplace=True)
+	df.drop('_id', axis = 1, inplace = True)
+	return df
