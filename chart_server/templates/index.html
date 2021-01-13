@@ -59,11 +59,11 @@
   
   <body>
     <div class='container'>
-      <form class="form-inline">
+      <form class="form-inline" id="custom-chart-form">
         <div class="row">
           <!-- <div class="col"> -->
             <label for="stock-name">Stock Name</label>
-            <input type="search" name="stock-name" id="autocomplete-1" class="form-control autocomplete" placeholder="Enter Source">
+            <input type="search" name="stock-name" id="autocomplete-1" class="form-control autocomplete" placeholder="Enter Source" required>
           <!-- </div> -->
           <!-- <div class="col"> -->
             <div class="form-group">
@@ -86,25 +86,103 @@
           <button type="submit" id="submit" class="btn btn-primary mb-2">Submit</button>
           <script>
             $("form").on("submit", function (e) {
-              var dataString = $(this).serialize();
-              
-              $.ajax({
-                type: "POST",
-                url: "/getOHLC",
-                data: dataString,
-                success: function (arg) {
-                  console.log(arg);
-                  display_chart(arg);
-                }
-              });
-              
+              var start_date = document.forms["custom-chart-form"]["start-date"].value;
+              var end_date = document.forms["custom-chart-form"]["end-date"].value;
+              console.log(Date.parse(start_date))
+              if(Date.parse(start_date) <= Date.parse(end_date)){
+                var dataString = $(this).serialize();
+                $.ajax({
+                  type: "POST",
+                  url: "/getOHLC",
+                  data: dataString,
+                  success: function (arg) {
+                    console.log(arg);
+                    display_chart(arg);
+                  }
+                });
+                document.getElementById('error').innerHTML="";
+              }
+              else{
+                document.getElementById('error').innerHTML="Start date should be less than end date";
+              }
               e.preventDefault();
             });
           </script>
         </div>
+        <label for="error" id="error" style="color: red;"></label>
       </form>
     </div>
     <br>
+    <div class='container'>
+      <form class="form-inline" id="load-backtest-symbols">
+        <label for="backtest-file-input">Path to Backtest File</label>
+        <input type="text" name="backtest-file-input" id="backtest-file-input" class="form-control" placeholder="Enter Backtest File full path">
+        <button type="submit" id="load-symbols" class="btn btn-primary mb-2">Submit</button>
+        <script>
+          function removeOptions(selectElement) {
+            var i, L = selectElement.options.length - 1;
+            for(i = L; i >= 0; i--) {
+              selectElement.remove(i);
+            }
+          }
+          function populate_symbols_dropdown(symbols_list){
+            let dropdown = document.getElementById('backtest-symbols-dropdown');
+            removeOptions(dropdown);
+            let defaultOption = document.createElement('option');
+            defaultOption.text = 'Choose Symbol';
+            dropdown.add(defaultOption);
+            dropdown.selectedIndex = 0;
+            let option;
+            for(var i in symbols_list){
+              option = document.createElement('option');
+              option.text = symbols_list[i];
+              option.value = symbols_list[i];
+              dropdown.add(option);
+            }
+          }
+          $("form").on("submit", function (e) {
+            var file_path = document.forms["load-backtest-symbols"]["backtest-file-input"].value;
+            console.log(file_path)
+            var dataString = $(this).serialize();
+            $.ajax({
+              type: "POST",
+              url: "/extract_trading_symbols",
+              data: dataString,
+              success: function (arg) {
+                console.log(arg);
+                populate_symbols_dropdown(arg);
+              },
+              error: function () {
+                document.getElementById('error').innerHTML="Some error occoured";
+              }
+            });
+            document.getElementById('error').innerHTML="";
+            e.preventDefault();
+          });
+          function backtest_dropdown_change(tradingsymbol){
+            console.log(tradingsymbol);
+            var dataString = "tradingsymbol="+tradingsymbol;
+            console.log("serialized: "+dataString);
+            $.ajax({
+              type: "POST",
+              url: "/read-backtest",
+              data: dataString,
+              success: function (arg) {
+                console.log(arg);
+                display_chart(arg);
+              },
+              error: function () {
+                document.getElementById('error').innerHTML="Some error occoured";
+              }
+            });
+
+          }
+
+        </script>
+        <select id="backtest-symbols-dropdown" name="backtest-symbols" class="form-control" onchange="backtest_dropdown_change(this.value);"></select>
+      </form>
+    </div>
+    
     <br>
     
     <script>
@@ -137,9 +215,17 @@
         console.log(ohlc_response);
         plot_chart(stock_name, ohlc_data);
         add_ema(10);
-        add_ema(20);
-        add_ema(30);
+        // add_ema(20);
+        // add_ema(30);
+        buy_list = ohlc_response['buy-list']
+        sell_list = ohlc_response['sell-list']
         add_rsi(3);
+        for(var i in buy_list){
+          add_buy_line(buy_list[i]);
+        }
+        for(var i in sell_list){
+          add_sell_line(sell_list[i]);
+        }   
         // var chart
       }
       function display_chart(callback_data){
@@ -147,15 +233,24 @@
         ohlc_response = callback_data
         ohlc_data = ohlc_response['ohlc'];
         stock_name = ohlc_response['stock-name'];
+        buy_list = ohlc_response['buy-list']
+        sell_list = ohlc_response['sell-list']
         console.log(ohlc_response);
         window.chart.dispose();
         plot_chart(stock_name, ohlc_data);
         add_ema(10);
-        add_ema(20);
-        add_ema(30);
+        // add_ema(20);
+        // add_ema(30);
         add_rsi(3);
+        // add_rsi(4);
+        for(var i in buy_list){
+          add_buy_line(buy_list[i]);
+        }
+        for(var i in sell_list){
+          add_sell_line(sell_list[i]);
+        }   
       }
-      loadFile('/getOHLC',set_data,'Chart Loaded');
+      
       
     </script>
     <script>
@@ -528,6 +623,7 @@ src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/2.5.1/js/boots
     var chart;
     var mapping;
     var volumeMapping;
+    var annotation;
     function plot_chart(stock_name,ohlc_data) {
       initTooltip('bottom');
 
@@ -584,7 +680,7 @@ src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/2.5.1/js/boots
         //set zoom on mouse wheel
         chart.interactivity().zoomOnMouseWheel(true);
         
-        // annotation = plotFirst.annotations();
+        annotation = plotFirst.annotations();
         // annotation
         //     .marker()
         //     .xAnchor('2021-01-11 12:00:00')
@@ -724,7 +820,37 @@ src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/2.5.1/js/boots
           var rsi = secondPlot.rsi(window.mapping, period).series();
           rsi.stroke('#64b5f6');
         }
-        
+
+        function add_buy_line(time_val){
+          console.log("Buy Line"+time_val)
+          window.annotation
+          .verticalLine({
+            // X - part of the first anchor
+            xAnchor: time_val,
+            stroke: {
+              thickness: 2,
+              color: '#00FF00',
+              dash: '10 15'
+            }
+            // disable interaction with Annotation
+          })
+          .allowEdit(false);
+        }
+        function add_sell_line(time_val){
+          window.annotation
+          .verticalLine({
+            // X - part of the first anchor
+            xAnchor: time_val,
+            stroke: {
+              thickness: 2,
+              color: '#FF0000',
+              dash: '10 15'
+            }
+            // disable interaction with Annotation
+          })
+          .allowEdit(false);
+        }
+        loadFile('/getOHLC',set_data,'Chart Loaded');
       </script>
       
       

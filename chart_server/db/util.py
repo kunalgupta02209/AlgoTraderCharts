@@ -49,9 +49,9 @@ def get_ohlc(symbol, interval = OHLCInterval.Minute_1,
 		to_d = TIMEZONE.localize(to_d)
 	final_df = None
 	if OHLCInterval.Day_1 != interval and OHLCInterval.Minute_1 != interval and OHLCInterval.Minute_60 != interval:
-		if OHLCInterval.Month_1 == interval or OHLCInterval.Week_1:
+		if OHLCInterval.Month_1 == interval or OHLCInterval.Week_1 == interval:
 			df = _get_ohlc(symbol, OHLCInterval.Day_1, from_d, to_d)
-		elif OHLCInterval.Hour_2 == interval or OHLCInterval.Hour_3 == interval or OHLCInterval.Hour_4:
+		elif OHLCInterval.Hour_2 == interval or OHLCInterval.Hour_3 == interval or OHLCInterval.Hour_4 == interval:
 			df = _get_ohlc(symbol, OHLCInterval.Minute_60, from_d, to_d)
 		else:
 			df = _get_ohlc(symbol, OHLCInterval.Minute_1, from_d, to_d)

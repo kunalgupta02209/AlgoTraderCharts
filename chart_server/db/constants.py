@@ -1,3 +1,4 @@
+import enum
 class CustomEnum(set):
 	def __getattr__(self, name):
 		if name in self:
@@ -124,3 +125,19 @@ IntervalMinutes = {
 	OHLCInterval.Week_1 : 10080,
 	OHLCInterval.Month_1 : 43200,
 }
+
+class TransactionType(enum.Enum):
+	Buy = 'BUY'
+	Sell = 'SELL'
+
+class OrderType(enum.Enum):
+	Market = 'MARKET'
+	Limit = 'LIMIT'
+	StopLossLimit = 'SL'
+	StopLossMarket = 'SL-M'
+
+class ProductType(enum.Enum):
+	Intraday = 'I'
+	Delivery = 'D'
+	CoverOrder = 'CO'
+	BracketOrder = 'BO'
