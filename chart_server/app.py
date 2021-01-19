@@ -12,6 +12,8 @@ import pandas as pd
 import re
 from datetime import datetime as dt
 from datetime import timedelta
+import talib
+import numpy as np
 
 
 
@@ -50,7 +52,7 @@ def get_formatted_ohlc(
 	if backtest_stock is not None:
 		stock_name = backtest_stock
 		interval = backtest_interval
-		start_date = dt.strptime(backtest_start_date,"%Y-%m-%d %H:%M:%S") - timedelta(days=10)
+		start_date = dt.strptime(backtest_start_date,"%Y-%m-%d %H:%M:%S") - timedelta(days=3)
 		end_date =  dt.strptime(backtest_end_date,"%Y-%m-%d %H:%M:%S") + timedelta(days=5)
 	elif request.method == 'POST':
 		stock_name = request.form.get('stock-name')
@@ -60,7 +62,7 @@ def get_formatted_ohlc(
 	else:
 		stock_name = 'HDFCBANK'
 		interval = OHLCInterval.Minute_1
-		start_date = (dt.now()-timedelta(days=7)).replace(hour=9,minute=15,second=0,microsecond=0)
+		start_date = (dt.now()-timedelta(days=14)).replace(hour=9,minute=15,second=0,microsecond=0)
 		end_date = dt.now()
 
 	if interval == OHLCInterval.Tick:
@@ -81,8 +83,18 @@ def get_formatted_ohlc(
 		df_json = df.to_numpy().tolist()
 	else:
 		df = get_ohlc(stock_name,interval=interval,from_d=start_date, to_d=end_date)
+		upper, middle, lower = talib.BBANDS(df['close'],timeperiod=20)
+		# df['upper'] = upper
+		# df['lower'] = lower
+		# df['middle'] = middle
+		bb_m = ((upper-middle)/middle)*100
+		bb_m_max = np.max(bb_m)
+		df['bb_m'] = bb_m/bb_m_max
+		df['bbw'] = (upper-lower)/middle
+		df.dropna(inplace=True)
 		df.reset_index(drop=True,inplace=True)
-		df = df.drop('oi',axis=1)
+		if 'oi' in df.keys():
+			df = df.drop('oi',axis=1)
 		df['timestamp'] = df['timestamp'].astype(dtype='string')
 		# log.info(df)
 		df_json = df.to_numpy().tolist()
@@ -115,6 +127,7 @@ def extract_trading_symbols():
 	df = pd.read_csv(backtest_file_name,names=['timestamp','tradingsymbol'
 												,'entry_exit','buy_sell'
 												,'qty','price','pnl','arg1'])
+	# df = pd.read_csv(backtest_file_name)
 	trading_symbols = []
 	for symbol in list(df['tradingsymbol']):
 		if symbol not in trading_symbols:
@@ -127,22 +140,26 @@ def extract_trading_symbols():
 def read_backtest():
 	global backtest_file_name
 	tradingsymbol = request.form.get('tradingsymbol')
-	# tradingsymbol = 'NIFTY BANK'
-	# with open('backtest_file_name.txt') as f:
-	# 	backtest_file_name = f.readline()
+	file_path = request.form.get('backtest-file-input')
+	interval = request.form.get('interval')
+	with open('backtest_file_name.txt') as f:
+		backtest_file_name = f.readline()
+	if file_path is not None and file_path != "":
+		backtest_file_name = file_path
 	df = pd.read_csv(backtest_file_name,names=['timestamp','tradingsymbol'
 												,'entry_exit','buy_sell'
 												,'qty','price','pnl','arg1'])
+	# df = pd.read_csv(backtest_file_name)
 	df = df[df['tradingsymbol'] == tradingsymbol]
 	print(df)
 	df_buy = df[df['buy_sell'] == "TransactionType.Buy"]
 	df_sell = df[df['buy_sell'] == "TransactionType.Sell"]
 	buy_list = list(df_buy['timestamp'])
 	sell_list = list(df_sell['timestamp'])
-	start_time = buy_list[0]
-	end_time = sell_list[-1]
+	start_time = df.timestamp.iloc[0]
+	end_time = df.timestamp.iloc[-1]
 	
-	return get_formatted_ohlc(backtest_stock=tradingsymbol,
+	return get_formatted_ohlc(backtest_stock=tradingsymbol,backtest_interval=interval,
 						backtest_start_date=start_time,
 						backtest_end_date=end_time,
 						backtest_buy_signals_list=buy_list,
