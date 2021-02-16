@@ -225,12 +225,15 @@
         stock_name = ohlc_response['stock-name'];
         console.log(ohlc_response);
         plot_chart(stock_name, ohlc_data);
-        add_ema(10);
+        // add_ema(10);
         // add_ema(20);
         // add_ema(30);
         buy_list = ohlc_response['buy-list']
         sell_list = ohlc_response['sell-list']
-        add_rsi(3);
+        // add_rsi(3);
+        if (ohlc_data[0].length > 6) {
+          add_custom_plot_supertrend();
+        }
         for(var i in buy_list){
           add_buy_line(buy_list[i]);
         }
@@ -252,10 +255,10 @@
         // add_sma(20);
         // add_ema(20);
         // add_ema(30);
-        add_rsi(3);
-        add_b_bands(20,2);
-        if(ohlc_data[0].length >6){
-          add_custom_plot();
+        // add_rsi(3);
+        // add_b_bands(20,2);
+        if(ohlc_data[0].length > 6){
+          add_custom_plot_supertrend();
         }
         // add_rsi(4);
         for(var i in buy_list){
@@ -892,6 +895,17 @@ src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/2.5.1/js/boots
           .allowEdit(false);
 
       }
+      function add_custom_plot_supertrend() {
+        console.log('This printed')
+          var supertrend_1 = window.table.mapAs({ value: 6 });
+          var supertrend_2 = window.table.mapAs({ value: 7 });
+          // var bBandsIndicator = mainPlot.line(window.mapping);
+          var firstPlot = window.chart.plot(0);;
+          // create RSI indicator with period 14
+          var plot_bb_m = firstPlot.line(supertrend_1).name('Supertrend_1');
+          plot_bb_m.stroke('#64b5f6');
+          var plot_bbw = firstPlot.line(supertrend_2).name('Supertrend_2');
+        }
         
         function add_rsi(period){
           var secondPlot = window.chart.plot(2);
