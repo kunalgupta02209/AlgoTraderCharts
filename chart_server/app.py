@@ -52,6 +52,9 @@ def get_formatted_ohlc(
         backtest_stock=None, backtest_interval=OHLCInterval.Minute_1,
         backtest_start_date=None, backtest_end_date=None,
         backtest_buy_signals_list=None, backtest_sell_signals_list=None):
+    combined_premium_1 = False
+    combined_premium_2 = False
+    combined_premium_3 = False
     if backtest_stock is not None:
         stock_name = backtest_stock
         interval = backtest_interval
@@ -66,6 +69,15 @@ def get_formatted_ohlc(
             'start-date'), "%Y-%m-%d").replace(hour=9, minute=15, second=0, microsecond=0)
         end_date = dt.strptime(request.form.get(
             'end-date'), "%Y-%m-%d").replace(hour=15, minute=30, second=0, microsecond=0)
+        stock_name_2 = request.form.get('stock-name-2')
+        if stock_name_2 != "":
+            combined_premium_1 = True
+        stock_name_3 = request.form.get('stock-name-3')
+        if stock_name_3 != "":
+            combined_premium_2 = True
+        stock_name_4 = request.form.get('stock-name-4')
+        if stock_name_4 != "":
+            combined_premium_3 = True
     else:
         stock_name = 'HDFCBANK'
         interval = OHLCInterval.Minute_1
@@ -98,6 +110,22 @@ def get_formatted_ohlc(
         # # df['middle'] = middle
         # bb_m = ((upper-middle)/middle)*100
         # bb_m_max = np.max(bb_m)
+        index_list = ['open', 'high', 'low', 'close', 'volume']
+        if combined_premium_1:
+            df_2 = get_ohlc(stock_name_2, interval=interval,
+                            from_d=start_date, to_d=end_date)
+            for i in index_list:
+                df[i] = df[i]+df_2[i]
+        if combined_premium_2:
+            df_3 = get_ohlc(stock_name_3, interval=interval,
+                            from_d=start_date, to_d=end_date)
+            for i in index_list:
+                df[i] = df[i]+df_3[i]
+        if combined_premium_3:
+            df_4 = get_ohlc(stock_name_4, interval=interval,
+                            from_d=start_date, to_d=end_date)
+            for i in index_list:
+                df[i] = df[i]+df_4[i]
         df['SuperTrend_1'] = SuperTrend(
             df['high'], df['low'], df['close'], timeperiod=SUPERTREND_TIMEPERIOD_1, multiplier=SUPERTREND_MULTIPLIER_1)[0]
         df['SuperTrend_2'] = SuperTrend(

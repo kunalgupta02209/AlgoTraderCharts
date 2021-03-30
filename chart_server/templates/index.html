@@ -49,6 +49,9 @@
   <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
   
+  <!--axios - request-->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
   <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
   <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
   <!--[if lt IE 9]>
@@ -64,6 +67,9 @@
           <!-- <div class="col"> -->
             <label for="stock-name">Stock Name</label>
             <input type="search" name="stock-name" id="autocomplete-1" class="form-control autocomplete" placeholder="Enter Source" required>
+            <input type="search" name="stock-name-2" id="autocomplete-2" class="form-control autocomplete" placeholder="Enter Source">
+            <input type="search" name="stock-name-3" id="autocomplete-3" class="form-control autocomplete" placeholder="Enter Source">
+            <input type="search" name="stock-name-4" id="autocomplete-4" class="form-control autocomplete" placeholder="Enter Source">
           <!-- </div> -->
           <!-- <div class="col"> -->
             <div class="form-group">
@@ -85,21 +91,26 @@
           <!-- </div> -->
           <button type="submit" id="submit" class="btn btn-primary mb-2">Submit</button>
           <script>
-            $("form#custom-chart-form").on("submit", function (e) {
+            $("form#custom-chart-form").on("submit", async function (e) {
               var start_date = document.forms["custom-chart-form"]["start-date"].value;
               var end_date = document.forms["custom-chart-form"]["end-date"].value;
               console.log(Date.parse(start_date))
+              e.preventDefault();
               if(Date.parse(start_date) <= Date.parse(end_date)){
                 var dataString = $(this).serialize();
-                $.ajax({
-                  type: "POST",
-                  url: "/getOHLC",
-                  data: dataString,
-                  success: function (arg) {
-                    console.log(arg);
-                    display_chart(arg);
-                  }
-                });
+                let arg = await axios.post('/getOHLC', data = dataString);
+                console.log("Test"+arg);
+                display_chart(arg.data);
+                // $.ajax({
+                //   type: "POST",
+                //   url: "/getOHLC",
+                //   data: dataString,
+                //   success: function (arg) {
+                //     console.log(arg);
+                //     display_chart(arg);
+                //   }
+                // });
+
                 document.getElementById('error').innerHTML="";
               }
               else{
@@ -140,24 +151,20 @@
               dropdown.add(option);
             }
           }
-          $("form#load-backtest-symbols").on("submit", function (e) {
+          $("form#load-backtest-symbols").on("submit", async function (e) {
             var file_path = document.forms["load-backtest-symbols"]["backtest-file-input"].value;
             console.log(file_path)
             var dataString = $(this).serialize();
-            $.ajax({
-              type: "POST",
-              url: "/extract_trading_symbols",
-              data: dataString,
-              success: function (arg) {
-                console.log(arg);
-                populate_symbols_dropdown(arg);
-              },
-              error: function () {
-                document.getElementById('error').innerHTML="Some error occoured";
-              }
-            });
-            document.getElementById('error').innerHTML="";
             e.preventDefault();
+            try{
+              let arg = await axios.post('/extract_trading_symbols', data = dataString);
+              console.log("Test" + arg);
+              populate_symbols_dropdown(arg.data); 
+            }
+            catch(e){
+               document.getElementById('error').innerHTML = "Some error occoured";
+               console.log(e);
+            }
           });
           function backtest_dropdown_change(){
             // console.log(tradingsymbol);
@@ -166,19 +173,16 @@
             var interval = document.forms["load-backtest-symbols"]["select-interval-backtest"].value;
             var dataString = "tradingsymbol="+tradingsymbol+"&interval="+interval+"&backtest-file-input="+file_path;
             console.log("serialized: "+dataString);
-            $.ajax({
-              type: "POST",
-              url: "/read-backtest",
-              data: dataString,
-              success: function (arg) {
-                console.log(arg);
-                display_chart(arg);
-              },
-              error: function () {
-                document.getElementById('error').innerHTML="Some error occoured";
-              }
-            });
-
+            e.preventDefault();
+            try {
+              let arg = await axios.post('/read-backtest', data = dataString);
+              console.log("Test" + arg);
+              populate_symbols_dropdown(arg.data);
+            }
+            catch (e) {
+              document.getElementById('error').innerHTML = "Some error occoured";
+              console.log(e);
+            }
           }
 
         </script>
@@ -275,6 +279,18 @@
       $( "#autocomplete-1" ).autocomplete({
         source: "/autocomplete",
         minLength: 4,
+      });
+      $("#autocomplete-2").autocomplete({
+          source: "/autocomplete",
+          minLength: 4,
+      });
+      $("#autocomplete-3").autocomplete({
+          source: "/autocomplete",
+          minLength: 4,
+      });
+      $("#autocomplete-4").autocomplete({
+          source: "/autocomplete",
+          minLength: 4,
       });
     </script>
     <div id="loader-wrapper" class="anychart-loader">
