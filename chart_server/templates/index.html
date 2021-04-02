@@ -76,7 +76,7 @@
               <label for="select-interval">Select Interval:</label>
               <select class="form-control" name="select-interval" id="select-interval">
                 {% for interval in interval_list %}
-                <option>{{interval}}</option>
+                <option {% if interval=="minute" %} selected="selected"{% endif %}>{{interval}}</option>
                 {% endfor %}
               </select>
             </div>
@@ -166,7 +166,7 @@
                console.log(e);
             }
           });
-          function backtest_dropdown_change(){
+          async function backtest_dropdown_change(){
             // console.log(tradingsymbol);
             var file_path = document.forms["load-backtest-symbols"]["backtest-file-input"].value;
             var tradingsymbol = document.forms["load-backtest-symbols"]["backtest-symbols-dropdown"].value;
